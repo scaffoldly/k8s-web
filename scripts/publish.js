@@ -17,37 +17,37 @@ function writePackage(pkgPath, pkg) {
 }
 
 function renameTok8sWeb(publishAngular, publishReact) {
-  const angularPkg = readPackage(angularPkgPath);
-  const reactPkg = readPackage(reactPkgPath);
+  let angularPkg, reactPkg;
 
   if (publishAngular) {
+    angularPkg = readPackage(angularPkgPath);
     angularPkg.name = 'k8s-web';
     writePackage(angularPkgPath, angularPkg);
   }
 
   if (publishReact) {
+    reactPkg = readPackage(reactPkgPath);
     reactPkg.name = 'k8s-web';
     writePackage(reactPkgPath, reactPkg);
   }
 
   return {
-    angularVersion: angularPkg.version,
-    reactVersion: reactPkg.version,
+    angularVersion: angularPkg?.version,
+    reactVersion: reactPkg?.version,
     originalAngularName: 'k8s-web-angular',
     originalReactName: 'k8s-web-react',
   };
 }
 
 function revertNames(publishAngular, publishReact) {
-  const angularPkg = readPackage(angularPkgPath);
-  const reactPkg = readPackage(reactPkgPath);
-
   if (publishAngular) {
+    const angularPkg = readPackage(angularPkgPath);
     angularPkg.name = 'k8s-web-angular';
     writePackage(angularPkgPath, angularPkg);
   }
 
   if (publishReact) {
+    const reactPkg = readPackage(reactPkgPath);
     reactPkg.name = 'k8s-web-react';
     writePackage(reactPkgPath, reactPkg);
   }
