@@ -36,7 +36,9 @@
       "Bash(yarn list:*)",
       "Bash(npx playwright install chromium)",
       "Bash(git mv:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh run view:*)"
     ]
   }
 }

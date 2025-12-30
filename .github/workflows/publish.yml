@@ -10,7 +10,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 1  # Process sequentially to ensure latest version published last
+      max-parallel: 2 # Process sequentially to ensure latest version published last
       matrix:
         # Ordered oldest to newest - ensures dist-tags point to 1.35
         include:
