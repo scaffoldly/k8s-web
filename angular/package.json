@@ -33,7 +33,7 @@
     "dev": "ng-packagr -p ng-package.json --watch",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "yarn build"
+    "pack": "cd dist && npm pack"
   },
   "peerDependencies": {
     "@angular/common": "^16.0.0",
