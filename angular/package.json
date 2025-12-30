@@ -20,27 +20,23 @@
     "url": "https://github.com/scaffoldly/k8s-web/issues"
   },
   "homepage": "https://github.com/scaffoldly/k8s-web#readme",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
+    ".": "./src/index.ts"
   },
   "files": [
-    "dist",
     "src",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
-    "build": "rm -rf dist && tsc --project tsconfig.build.json",
-    "dev": "tsc --project tsconfig.build.json --watch",
+    "build": "echo 'No build needed - publishing TypeScript source'",
+    "dev": "echo 'No dev build - TypeScript source is used directly'",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "yarn build"
+    "prepublishOnly": "echo 'Publishing TypeScript source files'"
   },
   "peerDependencies": {
     "@angular/common": "^17.0.0",
