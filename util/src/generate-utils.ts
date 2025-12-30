@@ -521,6 +521,16 @@ export async function generateClients(options: GenerateOptions) {
       },
     };
 
+    // Add Angular-specific configuration
+    if (client === 'angular') {
+      if (!outputConfig.override) {
+        outputConfig.override = {};
+      }
+      outputConfig.override.angular = {
+        injectServices: true, // Generate @Injectable() decorators
+      };
+    }
+
     // Add mutator for axios and react-query clients
     if ((client === 'axios' || client === 'react-query') && mutatorPath) {
       if (!outputConfig.override) {
