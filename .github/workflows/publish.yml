@@ -10,9 +10,26 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1  # Process sequentially to ensure latest version published last
       matrix:
-        k8s_version: ['1.29', '1.30', '1.31', '1.32', '1.33', '1.34']
-        framework: ['angular', 'react']
+        # Ordered oldest to newest - ensures dist-tags point to 1.35
+        include:
+          - k8s_version: '1.32'
+            framework: 'angular'
+          - k8s_version: '1.32'
+            framework: 'react'
+          - k8s_version: '1.33'
+            framework: 'angular'
+          - k8s_version: '1.33'
+            framework: 'react'
+          - k8s_version: '1.34'
+            framework: 'angular'
+          - k8s_version: '1.34'
+            framework: 'react'
+          - k8s_version: '1.35'
+            framework: 'angular'
+          - k8s_version: '1.35'
+            framework: 'react'
 
     steps:
       - name: Checkout code
