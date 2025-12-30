@@ -42,7 +42,14 @@
       "Bash(kill:*)",
       "Bash(pkill -f \"serve -l 3000\")",
       "Bash(yarn why:*)",
-      "Bash(yarn --cwd angular run build:*)"
+      "Bash(yarn --cwd angular run build:*)",
+      "Bash(npm view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run watch:*)",
+      "Bash(npm pack:*)",
+      "Bash(yarn info:*)",
+      "Bash(yarn --cwd angular build:*)",
+      "Bash(yarn --cwd react build:*)"
     ]
   }
 }

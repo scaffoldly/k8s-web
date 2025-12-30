@@ -9,7 +9,8 @@ export const customInstance = <T>(config: {
   signal?: AbortSignal;
 }): Promise<T> => {
   const clientConfig = getK8sClientConfig();
-  const url = `${clientConfig.baseURL}${config.url}`;
+  // Use URL class to properly combine baseURL and path (handles trailing slashes)
+  const url = new URL(config.url, clientConfig.baseURL).toString();
 
   // Build headers with token if provided
   const authHeaders: Record<string, string> = {};
