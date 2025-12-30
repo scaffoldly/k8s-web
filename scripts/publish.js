@@ -20,30 +20,45 @@ function renameTok8sWeb(publishAngular, publishReact) {
   const angularPkg = readPackage(angularPkgPath);
   const reactPkg = readPackage(reactPkgPath);
 
+  // Store original versions for reverting later
+  const originalAngularVersion = angularPkg.version;
+  const originalReactVersion = reactPkg.version;
+
   if (publishAngular) {
     angularPkg.name = 'k8s-web';
+    // Strip framework suffix from version (e.g., "1.34.0-angular" -> "1.34.0")
+    angularPkg.version = angularPkg.version.replace(/-angular$/, '');
     writePackage(angularPkgPath, angularPkg);
   }
 
   if (publishReact) {
     reactPkg.name = 'k8s-web';
+    // Strip framework suffix from version (e.g., "1.34.0-react" -> "1.34.0")
+    reactPkg.version = reactPkg.version.replace(/-react$/, '');
     writePackage(reactPkgPath, reactPkg);
   }
 
-  return { angularVersion: angularPkg.version, reactVersion: reactPkg.version };
+  return {
+    angularVersion: angularPkg.version,
+    reactVersion: reactPkg.version,
+    originalAngularVersion,
+    originalReactVersion,
+  };
 }
 
-function revertNames(publishAngular, publishReact) {
+function revertNames(publishAngular, publishReact, originalVersions) {
   const angularPkg = readPackage(angularPkgPath);
   const reactPkg = readPackage(reactPkgPath);
 
   if (publishAngular) {
     angularPkg.name = 'k8s-web-angular';
+    angularPkg.version = originalVersions.originalAngularVersion;
     writePackage(angularPkgPath, angularPkg);
   }
 
   if (publishReact) {
     reactPkg.name = 'k8s-web-react';
+    reactPkg.version = originalVersions.originalReactVersion;
     writePackage(reactPkgPath, reactPkg);
   }
 }
@@ -60,10 +75,12 @@ function publish() {
   const publishAngular = !framework || framework === 'angular';
   const publishReact = !framework || framework === 'react';
 
-  // Step 1: Rename packages
-  console.log('Step 1: Temporarily renaming packages to "k8s-web"...');
-  const { angularVersion, reactVersion } = renameTok8sWeb(publishAngular, publishReact);
-  console.log('✓ Renamed packages\n');
+  // Step 1: Rename packages and update versions
+  console.log('Step 1: Temporarily renaming packages to "k8s-web" and updating versions...');
+  const { angularVersion, reactVersion, originalAngularVersion, originalReactVersion } =
+    renameTok8sWeb(publishAngular, publishReact);
+  const originalVersions = { originalAngularVersion, originalReactVersion };
+  console.log('✓ Renamed packages and updated versions\n');
 
   try {
     const publishFlag = dryRun ? '--dry-run' : '';
@@ -72,7 +89,9 @@ function publish() {
     // Step 2: Publish Angular
     if (publishAngular) {
       console.log(`Step ${stepNum}: Publishing k8s-web@${angularVersion}...`);
-      execSync(`cd angular && npm publish --tag ${angularVersion} ${publishFlag}`, { stdio: 'inherit' });
+      execSync(`cd angular && npm publish ${publishFlag}`, {
+        stdio: 'inherit',
+      });
       console.log('✓ Published Angular\n');
       stepNum++;
     }
@@ -80,15 +99,17 @@ function publish() {
     // Step 3: Publish React
     if (publishReact) {
       console.log(`Step ${stepNum}: Publishing k8s-web@${reactVersion}...`);
-      execSync(`cd react && npm publish --tag ${reactVersion} ${publishFlag}`, { stdio: 'inherit' });
+      execSync(`cd react && npm publish ${publishFlag}`, {
+        stdio: 'inherit',
+      });
       console.log('✓ Published React\n');
       stepNum++;
     }
 
     // Success
-    console.log(`Step ${stepNum}: Reverting package names...`);
-    revertNames(publishAngular, publishReact);
-    console.log('✓ Reverted package names\n');
+    console.log(`Step ${stepNum}: Reverting package names and versions...`);
+    revertNames(publishAngular, publishReact, originalVersions);
+    console.log('✓ Reverted package names and versions\n');
 
     if (dryRun) {
       console.log('✓ Dry-run completed successfully!');
@@ -108,9 +129,9 @@ function publish() {
     }
   } catch (error) {
     // Revert on failure
-    console.error('\n✗ Publish failed, reverting package names...');
-    revertNames(publishAngular, publishReact);
-    console.error('✓ Reverted package names');
+    console.error('\n✗ Publish failed, reverting package names and versions...');
+    revertNames(publishAngular, publishReact, originalVersions);
+    console.error('✓ Reverted package names and versions');
     process.exit(1);
   }
 }
