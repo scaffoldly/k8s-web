@@ -346,6 +346,55 @@ import { useListAppsV1NamespacedDeployment } from '@k8s-web/react/apps-v1';
 import type { IoK8sApiCoreV1Pod } from '@k8s-web/react/models';
 ```
 
+**Convenience hooks (auto-generated wrappers):**
+
+The React client includes auto-generated convenience hooks for common resources that provide cleaner APIs:
+
+```typescript
+import { usePods, useDeployments, useServices, useNodes } from '@k8s-web/react';
+
+function MyComponent() {
+  // Simple pod listing
+  const { data: pods, isLoading } = usePods('default');
+
+  // With label selector and auto-refresh
+  const { data: deployments } = useDeployments('default', {
+    labelSelector: 'app=frontend',
+    query: { refetchInterval: 5000 }, // Auto-refresh every 5 seconds
+  });
+
+  // List all namespaces
+  const { data: namespaces } = useNamespaces();
+
+  // List nodes with field selector
+  const { data: readyNodes } = useNodes({
+    fieldSelector: 'status.conditions[?(@.type=="Ready")].status=True',
+  });
+
+  return <div>{/* render resources */}</div>;
+}
+```
+
+**Available convenience hooks:**
+
+- `usePods(namespace, options?)` - List pods in a namespace
+- `useNamespaces(options?)` - List all namespaces
+- `useServices(namespace, options?)` - List services in a namespace
+- `useNodes(options?)` - List all nodes
+- `useDeployments(namespace, options?)` - List deployments in a namespace
+- `useStatefulSets(namespace, options?)` - List StatefulSets in a namespace
+- `useDaemonSets(namespace, options?)` - List DaemonSets in a namespace
+- `useConfigMaps(namespace, options?)` - List ConfigMaps in a namespace
+- `useSecrets(namespace, options?)` - List Secrets in a namespace
+
+All convenience hooks support:
+
+- `labelSelector` - Filter by labels (e.g., `'app=nginx,environment=production'`)
+- `fieldSelector` - Filter by fields (e.g., `'status.phase=Running'`)
+- `limit` - Limit number of results
+- `continue` - Pagination token
+- `query` - Additional TanStack Query options (refetch intervals, cache settings, etc.)
+
 ## Dependencies
 
 ### Root Dependencies
@@ -508,6 +557,10 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
   - React: `configureK8sClient()` function, supports `K8S_API_URL` and `K8S_API_TOKEN` env vars
   - Angular: `K8S_CLIENT_CONFIG` InjectionToken with `k8sClientInterceptor`
   - Both require explicit baseURL configuration (no hardcoded defaults)
+- ✅ **React convenience hooks** - auto-generated wrappers for common operations
+  - 9 convenience hooks (usePods, useDeployments, useServices, useNamespaces, etc.)
+  - Support label/field selectors, pagination, and TanStack Query options
+  - Generated during client generation in `react/src/hooks.ts`
 
 ## Known Issues & Limitations
 
@@ -518,15 +571,14 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
 
 ## Next Steps
 
-1. **Add React hooks helpers**: Create convenience hooks for common operations (e.g., `useNamespacedPods()`)
-2. **Add Angular interceptors**: Create additional interceptors for error handling and retry logic (auth interceptor already exists)
-3. **Publishing**: Configure for npm publishing
+1. **Add Angular interceptors**: Create additional interceptors for error handling and retry logic (auth interceptor already exists)
+2. **Publishing**: Configure for npm publishing
    - Add proper `package.json` metadata (description, repository, etc.)
    - Consider separate versioning for Angular and React packages
    - Configure npm publishing workflow
-4. **Documentation**: Generate API docs from OpenAPI specs using tools like TypeDoc
-5. **Testing**: Add integration tests for generated clients
-6. **Optimization**: Consider adding `.gitignore` patterns for generated files if repository size becomes an issue
+3. **Documentation**: Generate API docs from OpenAPI specs using tools like TypeDoc
+4. **Testing**: Add integration tests for generated clients
+5. **Optimization**: Consider adding `.gitignore` patterns for generated files if repository size becomes an issue
 
 ## Quick Reference
 

@@ -11,6 +11,220 @@ export function sanitizeGroupName(fileName: string): string {
   return fileName.replace('.json', '');
 }
 
+function generateReactHooks(): string {
+  // Define common Kubernetes resources and their hooks
+  const resources = [
+    {
+      name: 'Pods',
+      hook: 'usePods',
+      generatedHook: 'useListCoreV1NamespacedPod',
+      type: 'IoK8sApiCoreV1PodList',
+      import: './generated/core-v1/core-v1',
+      namespaced: true,
+      description: 'List pods in a namespace',
+      examples: [
+        "// List all pods in the default namespace\nconst { data: pods, isLoading } = usePods('default');",
+        "// List pods with a label selector\nconst { data: pods } = usePods('default', {\n  labelSelector: 'app=nginx',\n});",
+        "// With auto-refresh every 5 seconds\nconst { data: pods } = usePods('default', {\n  query: { refetchInterval: 5000 },\n});",
+      ],
+    },
+    {
+      name: 'Namespaces',
+      hook: 'useNamespaces',
+      generatedHook: 'useListCoreV1Namespace',
+      type: 'IoK8sApiCoreV1NamespaceList',
+      import: './generated/core-v1/core-v1',
+      namespaced: false,
+      description: 'List all namespaces',
+      examples: [
+        'const { data: namespaces, isLoading } = useNamespaces();',
+        "// With label selector\nconst { data: namespaces } = useNamespaces({\n  labelSelector: 'environment=production',\n});",
+      ],
+    },
+    {
+      name: 'Services',
+      hook: 'useServices',
+      generatedHook: 'useListCoreV1NamespacedService',
+      type: 'IoK8sApiCoreV1ServiceList',
+      import: './generated/core-v1/core-v1',
+      namespaced: true,
+      description: 'List services in a namespace',
+      examples: [
+        "const { data: services } = useServices('default');",
+        "// With label selector\nconst { data: services } = useServices('default', {\n  labelSelector: 'app=api',\n});",
+      ],
+    },
+    {
+      name: 'Nodes',
+      hook: 'useNodes',
+      generatedHook: 'useListCoreV1Node',
+      type: 'IoK8sApiCoreV1NodeList',
+      import: './generated/core-v1/core-v1',
+      namespaced: false,
+      description: 'List all nodes',
+      examples: [
+        'const { data: nodes } = useNodes();',
+        '// With field selector to get only ready nodes\nconst { data: readyNodes } = useNodes({\n  fieldSelector: \'status.conditions[?(@.type=="Ready")].status=True\',\n});',
+      ],
+    },
+    {
+      name: 'Deployments',
+      hook: 'useDeployments',
+      generatedHook: 'useListAppsV1NamespacedDeployment',
+      type: 'IoK8sApiAppsV1DeploymentList',
+      import: './generated/apps-v1/apps-v1',
+      namespaced: true,
+      description: 'List deployments in a namespace',
+      examples: [
+        "const { data: deployments } = useDeployments('default');",
+        "// With label selector\nconst { data: deployments } = useDeployments('default', {\n  labelSelector: 'app=frontend',\n});",
+      ],
+    },
+    {
+      name: 'StatefulSets',
+      hook: 'useStatefulSets',
+      generatedHook: 'useListAppsV1NamespacedStatefulSet',
+      type: 'IoK8sApiAppsV1StatefulSetList',
+      import: './generated/apps-v1/apps-v1',
+      namespaced: true,
+      description: 'List StatefulSets in a namespace',
+      examples: ["const { data: statefulSets } = useStatefulSets('default');"],
+    },
+    {
+      name: 'DaemonSets',
+      hook: 'useDaemonSets',
+      generatedHook: 'useListAppsV1NamespacedDaemonSet',
+      type: 'IoK8sApiAppsV1DaemonSetList',
+      import: './generated/apps-v1/apps-v1',
+      namespaced: true,
+      description: 'List DaemonSets in a namespace',
+      examples: ["const { data: daemonSets } = useDaemonSets('kube-system');"],
+    },
+    {
+      name: 'ConfigMaps',
+      hook: 'useConfigMaps',
+      generatedHook: 'useListCoreV1NamespacedConfigMap',
+      type: 'IoK8sApiCoreV1ConfigMapList',
+      import: './generated/core-v1/core-v1',
+      namespaced: true,
+      description: 'List ConfigMaps in a namespace',
+      examples: ["const { data: configMaps } = useConfigMaps('default');"],
+    },
+    {
+      name: 'Secrets',
+      hook: 'useSecrets',
+      generatedHook: 'useListCoreV1NamespacedSecret',
+      type: 'IoK8sApiCoreV1SecretList',
+      import: './generated/core-v1/core-v1',
+      namespaced: true,
+      description: 'List Secrets in a namespace',
+      examples: [
+        "const { data: secrets } = useSecrets('default');",
+        "// Filter by type\nconst { data: tlsSecrets } = useSecrets('default', {\n  fieldSelector: 'type=kubernetes.io/tls',\n});",
+      ],
+    },
+  ];
+
+  // Group imports by source
+  const importGroups = new Map<string, Set<string>>();
+  const typeImports = new Set<string>();
+
+  resources.forEach((resource) => {
+    if (!importGroups.has(resource.import)) {
+      importGroups.set(resource.import, new Set());
+    }
+    importGroups.get(resource.import)!.add(resource.generatedHook);
+    typeImports.add(resource.type);
+  });
+
+  // Generate imports
+  const imports: string[] = [
+    '/**',
+    ' * Convenience hooks for common Kubernetes operations',
+    ' * These are auto-generated wrappers around the generated TanStack Query hooks',
+    ' * ',
+    ' * @generated by common/src/generate-utils.ts',
+    ' */',
+    "import type { UseQueryOptions } from '@tanstack/react-query';",
+  ];
+
+  // Add hook imports
+  importGroups.forEach((hooks, importPath) => {
+    imports.push(`import { ${Array.from(hooks).join(', ')} } from '${importPath}';`);
+  });
+
+  // Add type imports
+  imports.push(`import type { ${Array.from(typeImports).join(', ')} } from './generated/models';`);
+
+  // Generate ListQueryOptions interface
+  const interfaceCode = `
+/**
+ * Common query options for list operations
+ */
+export interface ListQueryOptions<TData = unknown, TError = unknown> {
+  /**
+   * Label selector to filter resources
+   * @example 'app=nginx,environment=production'
+   */
+  labelSelector?: string;
+
+  /**
+   * Field selector to filter resources
+   * @example 'status.phase=Running'
+   */
+  fieldSelector?: string;
+
+  /**
+   * Limit the number of results
+   */
+  limit?: number;
+
+  /**
+   * Continue token for pagination
+   */
+  continue?: string;
+
+  /**
+   * Additional TanStack Query options
+   */
+  query?: Partial<UseQueryOptions<TData, TError, TData>>;
+}
+`;
+
+  // Generate hook functions
+  const hookFunctions = resources.map((resource) => {
+    const examples = resource.examples.map((ex) => ` * ${ex}`).join('\n *\n * ');
+
+    const namespaceParam = resource.namespaced ? 'namespace: string, ' : '';
+    const namespaceArg = resource.namespaced ? 'namespace, ' : '';
+
+    return `
+/**
+ * ${resource.description}
+ *
+ * @example
+ * \`\`\`typescript
+ * ${examples}
+ * \`\`\`
+ */
+export function ${resource.hook}(
+  ${namespaceParam}options?: ListQueryOptions<${resource.type}, void>
+) {
+  return ${resource.generatedHook}(
+    ${namespaceArg}{
+      labelSelector: options?.labelSelector,
+      fieldSelector: options?.fieldSelector,
+      limit: options?.limit,
+      continue: options?.continue,
+    },
+    { query: options?.query }
+  );
+}`;
+  });
+
+  return [...imports, '', interfaceCode, ...hookFunctions].join('\n');
+}
+
 function toNamespaceIdentifier(groupName: string): string {
   // Convert group name to a valid JavaScript identifier in camelCase
   // e.g., "v1" -> "v1", "apps-v1" -> "appsV1", "-well-known-openid-configuration" -> "wellKnownOpenidConfiguration"
@@ -85,15 +299,8 @@ function mergeOpenAPISpecs(specFiles: string[], specsDir: string): any {
 }
 
 export async function generateClients(options: GenerateOptions) {
-  const {
-    projectName,
-    specsDir,
-    srcGeneratedDir,
-    mutatorPath,
-    projectRoot,
-    rootDir,
-    client,
-  } = options;
+  const { projectName, specsDir, srcGeneratedDir, mutatorPath, projectRoot, rootDir, client } =
+    options;
 
   console.log(`Generating ${projectName} clients...\n`);
 
@@ -103,9 +310,7 @@ export async function generateClients(options: GenerateOptions) {
     process.exit(1);
   }
 
-  const specFiles = readdirSync(specsDir).filter(
-    (f) => f.endsWith('.json') && !f.startsWith('_')
-  );
+  const specFiles = readdirSync(specsDir).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
 
   if (specFiles.length === 0) {
     console.error('Error: No OpenAPI spec files found.');
@@ -161,18 +366,32 @@ export async function generateClients(options: GenerateOptions) {
 
   // Get all tag directories
   const tagDirs = readdirSync(srcGeneratedDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory() && dirent.name !== 'models')
-    .map(dirent => dirent.name)
+    .filter((dirent) => dirent.isDirectory() && dirent.name !== 'models')
+    .map((dirent) => dirent.name)
     .sort();
 
-  const indexContent = tagDirs
-    .map(tag => {
-      const fileName = client === 'angular' ? `${tag}.service` : tag;
-      return `export * from './generated/${tag}/${fileName}';`;
-    })
-    .join('\n') + '\n\n' +
+  let indexContent =
+    tagDirs
+      .map((tag) => {
+        const fileName = client === 'angular' ? `${tag}.service` : tag;
+        return `export * from './generated/${tag}/${fileName}';`;
+      })
+      .join('\n') +
+    '\n\n' +
     '// Re-export common models\n' +
-    'export * from \'./generated/models\';\n';
+    "export * from './generated/models';\n";
+
+  // Add config and hooks exports
+  if (client === 'angular') {
+    indexContent += '\n// Re-export configuration utilities\n';
+    indexContent += "export * from './config';\n";
+    indexContent += "export * from './interceptor';\n";
+  } else if (client === 'react-query') {
+    indexContent += '\n// Re-export configuration utilities\n';
+    indexContent += "export * from './config';\n";
+    indexContent += '\n// Re-export convenience hooks\n';
+    indexContent += "export * from './hooks';\n";
+  }
 
   // Format the index file content before writing
   const prettierConfigPath = path.join(rootDir, '.prettierrc');
@@ -191,6 +410,21 @@ export async function generateClients(options: GenerateOptions) {
 
   writeFileSync(indexPath, formattedIndex);
   console.log(`✓ Created index file with ${tagDirs.length} tag exports`);
+
+  // Generate convenience hooks for React
+  if (client === 'react-query') {
+    console.log('\nGenerating convenience hooks...');
+    const hooksPath = path.join(srcGeneratedDir, '..', 'hooks.ts');
+    const hooksContent = generateReactHooks();
+
+    const formattedHooks = await prettier.format(hooksContent, {
+      ...prettierConfig,
+      parser: 'typescript',
+    });
+
+    writeFileSync(hooksPath, formattedHooks);
+    console.log(`✓ Created hooks file with convenience wrappers`);
+  }
 
   console.log(`\n✓ ${projectName} client generation complete!`);
   console.log('\nUsage:');

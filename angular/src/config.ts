@@ -51,10 +51,7 @@ export const DEFAULT_K8S_CONFIG: Partial<K8sClientConfig> = {
  * ]
  * ```
  */
-export const K8S_CLIENT_CONFIG = new InjectionToken<Partial<K8sClientConfig>>(
-  'K8S_CLIENT_CONFIG',
-  {
-    providedIn: 'root',
-    factory: () => DEFAULT_K8S_CONFIG,
-  }
-);
+export const K8S_CLIENT_CONFIG = new InjectionToken<Partial<K8sClientConfig>>('K8S_CLIENT_CONFIG', {
+  providedIn: 'root',
+  factory: () => DEFAULT_K8S_CONFIG,
+});
