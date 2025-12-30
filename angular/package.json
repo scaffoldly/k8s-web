@@ -20,13 +20,6 @@
     "url": "https://github.com/scaffoldly/k8s-web/issues"
   },
   "homepage": "https://github.com/scaffoldly/k8s-web#readme",
-  "main": "./fesm2022/k8s-web-angular.mjs",
-  "types": "./types/k8s-web-angular.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
     "build": "ng-packagr -p ng-package.json",

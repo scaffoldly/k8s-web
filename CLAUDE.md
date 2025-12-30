@@ -552,12 +552,82 @@ yarn workspace @k8s-web/angular build
 yarn workspace @k8s-web/react build
 ```
 
-Each workspace uses `tsup` to:
+**Angular** uses `ng-packagr` to:
+
+- Bundle TypeScript source with AOT compilation
+- Generate FESM (Flat ESM) bundles
+- Generate type declarations
+- Create proper Angular library package structure in `dist/` folder
+
+**React** uses `tsup` to:
 
 - Bundle TypeScript source
 - Generate CommonJS output (`dist/index.js`)
 - Generate type declarations (`dist/index.d.ts`)
 - Generate source maps (`dist/index.js.map`)
+
+## Publishing
+
+The project uses a custom publishing workflow in `scripts/publish.js` that:
+
+1. **Publishes from dist folders**: Both Angular and React packages are published from their `angular/dist/` and `react/dist/` directories (not from the workspace root)
+2. **Temporary package renaming**: Renames packages from `k8s-web-angular` and `k8s-web-react` to `k8s-web` during publish, then reverts afterward
+3. **Framework-specific dist-tags**: Publishes with `--tag angular` and `--tag react` to allow framework-specific installation
+4. **Conditional framework publishing**: Only reads and publishes package.json files for the framework being published (controlled by `FRAMEWORK` env var)
+
+### Publishing Workflow
+
+```bash
+# Publish both frameworks (production)
+make publish
+
+# Dry-run mode
+make publish-dry
+
+# Publish single framework (used by CI/CD)
+FRAMEWORK=angular make publish
+FRAMEWORK=react make publish
+```
+
+### Package Structure
+
+**Important**: ng-packagr (Angular) and tsup (React) both generate complete package structures in their `dist/` folders:
+
+- `dist/package.json` - Generated with correct relative paths (e.g., `"main": "./fesm2022/k8s-web-angular.mjs"`)
+- `dist/README.md` - Copied from workspace root
+- `dist/LICENSE` - Copied from workspace root
+- `dist/` - All built artifacts (bundles, types, etc.)
+
+The publish script:
+1. Reads `angular/dist/package.json` and `react/dist/package.json` (not root package.json files)
+2. Temporarily renames `name` field to `k8s-web`
+3. Runs `npm publish` from within the `dist/` directory
+4. Reverts the `name` field back to original
+
+### Version Format
+
+- Format: `{major}.{minor}.{patch}-{framework}.{timestamp}.{commit_sha}`
+- Example: `1.35.0-angular.20251230184500.be967eb`
+- Angular and React have separate version tracks
+
+### Installation
+
+Users can install with framework-specific dist-tags:
+
+```bash
+# Latest Angular build
+npm install k8s-web@angular
+# or
+yarn add k8s-web@angular
+
+# Latest React build
+npm install k8s-web@react
+# or
+yarn add k8s-web@react
+
+# Specific version
+npm install k8s-web@1.35.0-angular.20251230184500.be967eb
+```
 
 ## Clean Targets
 
