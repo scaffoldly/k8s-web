@@ -2,8 +2,16 @@
  * HTTP Interceptor for retry logic
  * Retries failed requests with exponential backoff for transient errors
  */
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { retry, timer } from 'rxjs';
+import {
+  HttpEvent,
+  HttpHandler,
+  HttpInterceptor,
+  HttpRequest,
+  HttpErrorResponse,
+  HTTP_INTERCEPTORS,
+} from '@angular/common/http';
+import { Injectable, InjectionToken, Optional, Inject, Provider } from '@angular/core';
+import { Observable, retry, timer } from 'rxjs';
 
 /**
  * Configuration for retry behavior
@@ -52,38 +60,61 @@ const DEFAULT_RETRY_CONFIG: Required<RetryConfig> = {
 };
 
 /**
- * Create a retry interceptor with custom configuration
+ * Injection token for retry configuration
+ */
+export const K8S_RETRY_CONFIG = new InjectionToken<RetryConfig>('K8S_RETRY_CONFIG');
+
+/**
+ * HTTP interceptor that retries failed requests with exponential backoff
  *
  * @example
  * ```typescript
- * import { provideHttpClient, withInterceptors } from '@angular/common/http';
- * import { k8sClientInterceptor, createK8sRetryInterceptor } from '@k8s-web/angular';
+ * import { HTTP_INTERCEPTORS, provideHttpClient } from '@angular/common/http';
+ * import { K8sClientInterceptor, K8sRetryInterceptor, K8S_RETRY_CONFIG } from '@k8s-web/angular';
  *
  * export const appConfig: ApplicationConfig = {
  *   providers: [
- *     provideHttpClient(
- *       withInterceptors([
- *         k8sClientInterceptor,
- *         createK8sRetryInterceptor({
- *           maxRetries: 3,
- *           initialDelay: 1000,
- *         }),
- *       ])
- *     ),
+ *     provideHttpClient(),
+ *     {
+ *       provide: HTTP_INTERCEPTORS,
+ *       useClass: K8sClientInterceptor,
+ *       multi: true,
+ *     },
+ *     {
+ *       provide: HTTP_INTERCEPTORS,
+ *       useClass: K8sRetryInterceptor,
+ *       multi: true,
+ *     },
+ *     // Optional: Override default retry config
+ *     {
+ *       provide: K8S_RETRY_CONFIG,
+ *       useValue: {
+ *         maxRetries: 5,
+ *         initialDelay: 2000,
+ *       }
+ *     }
  *   ]
  * };
  * ```
  */
-export function createK8sRetryInterceptor(config: RetryConfig = {}): HttpInterceptorFn {
-  const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
+@Injectable()
+export class K8sRetryInterceptor implements HttpInterceptor {
+  private readonly retryConfig: Required<RetryConfig>;
 
-  return (req, next) => {
-    return next(req).pipe(
+  constructor(@Optional() @Inject(K8S_RETRY_CONFIG) config?: RetryConfig) {
+    this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
+  }
+
+  intercept(
+    req: HttpRequest<unknown>,
+    next: HttpHandler
+  ): Observable<HttpEvent<unknown>> {
+    return next.handle(req).pipe(
       retry({
-        count: retryConfig.maxRetries,
+        count: this.retryConfig.maxRetries,
         delay: (error: HttpErrorResponse, retryCount: number) => {
           // Only retry on retryable status codes
-          if (!retryConfig.retryableStatusCodes.includes(error.status)) {
+          if (!this.retryConfig.retryableStatusCodes.includes(error.status)) {
             throw error;
           }
 
@@ -94,39 +125,55 @@ export function createK8sRetryInterceptor(config: RetryConfig = {}): HttpInterce
 
           // Calculate exponential backoff delay
           const delay = Math.min(
-            retryConfig.initialDelay * Math.pow(retryConfig.backoffMultiplier, retryCount - 1),
-            retryConfig.maxDelay
+            this.retryConfig.initialDelay *
+              Math.pow(this.retryConfig.backoffMultiplier, retryCount - 1),
+            this.retryConfig.maxDelay
           );
 
           console.warn(
-            `Retrying request to ${req.url} (attempt ${retryCount}/${retryConfig.maxRetries}) after ${delay}ms`
+            `Retrying request to ${req.url} (attempt ${retryCount}/${this.retryConfig.maxRetries}) after ${delay}ms`
           );
 
           return timer(delay);
         },
       })
     );
-  };
+  }
 }
 
 /**
- * Default retry interceptor with standard configuration
+ * Provide K8sRetryInterceptor with custom configuration
  *
  * @example
  * ```typescript
- * import { provideHttpClient, withInterceptors } from '@angular/common/http';
- * import { k8sClientInterceptor, k8sRetryInterceptor } from '@k8s-web/angular';
+ * import { provideHttpClient } from '@angular/common/http';
+ * import { provideK8sRetryInterceptor } from '@k8s-web/angular';
  *
  * export const appConfig: ApplicationConfig = {
  *   providers: [
- *     provideHttpClient(
- *       withInterceptors([
- *         k8sClientInterceptor,
- *         k8sRetryInterceptor,  // Use default configuration
- *       ])
- *     ),
+ *     provideHttpClient(),
+ *     provideK8sRetryInterceptor({
+ *       maxRetries: 5,
+ *       initialDelay: 2000,
+ *     }),
  *   ]
  * };
  * ```
  */
-export const k8sRetryInterceptor = createK8sRetryInterceptor();
+export function provideK8sRetryInterceptor(config?: RetryConfig): Provider[] {
+  return [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: K8sRetryInterceptor,
+      multi: true,
+    },
+    ...(config
+      ? [
+          {
+            provide: K8S_RETRY_CONFIG,
+            useValue: config,
+          },
+        ]
+      : []),
+  ];
+}

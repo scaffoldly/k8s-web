@@ -4,7 +4,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const angularPkgPath = path.join(__dirname, '../angular/dist/package.json');
-const reactPkgPath = path.join(__dirname, '../react/dist/package.json');
+const reactPkgPath = path.join(__dirname, '../react/package.json');
 const dryRun = process.argv.includes('--dry-run');
 const framework = process.env.FRAMEWORK; // 'angular', 'react', or undefined (both)
 
@@ -87,7 +87,7 @@ function publish() {
     // Step 3: Publish React
     if (publishReact) {
       console.log(`Step ${stepNum}: Publishing k8s-web@${reactVersion} with tag "react"...`);
-      execSync(`cd react/dist && npm publish --tag react ${publishFlag}`, {
+      execSync(`cd react && npm publish --tag react ${publishFlag}`, {
         stdio: 'inherit',
       });
       console.log('✓ Published React\n');

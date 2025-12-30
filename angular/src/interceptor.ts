@@ -2,24 +2,33 @@
  * HTTP Interceptor for K8s Web Angular client
  * Adds base URL and authentication headers to all requests
  */
-import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { K8S_CLIENT_CONFIG } from './config';
+import {
+  HttpEvent,
+  HttpHandler,
+  HttpInterceptor,
+  HttpRequest,
+} from '@angular/common/http';
+import { Inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { K8S_CLIENT_CONFIG, K8sClientConfig } from './config';
 
 /**
  * HTTP interceptor that adds base URL and authentication headers
  *
  * @example
  * ```typescript
- * import { provideHttpClient, withInterceptors } from '@angular/common/http';
- * import { k8sClientInterceptor, K8S_CLIENT_CONFIG } from '@k8s-web/angular';
+ * import { HTTP_INTERCEPTORS, provideHttpClient } from '@angular/common/http';
+ * import { K8sClientInterceptor, K8S_CLIENT_CONFIG } from '@k8s-web/angular';
  *
  * // In your app configuration
  * export const appConfig: ApplicationConfig = {
  *   providers: [
- *     provideHttpClient(
- *       withInterceptors([k8sClientInterceptor])
- *     ),
+ *     provideHttpClient(),
+ *     {
+ *       provide: HTTP_INTERCEPTORS,
+ *       useClass: K8sClientInterceptor,
+ *       multi: true,
+ *     },
  *     {
  *       provide: K8S_CLIENT_CONFIG,
  *       useValue: {
@@ -31,39 +40,45 @@ import { K8S_CLIENT_CONFIG } from './config';
  * };
  * ```
  */
-export const k8sClientInterceptor: HttpInterceptorFn = (req, next) => {
-  const config = inject(K8S_CLIENT_CONFIG);
+@Injectable()
+export class K8sClientInterceptor implements HttpInterceptor {
+  constructor(@Inject(K8S_CLIENT_CONFIG) private config: K8sClientConfig) {}
 
-  // Only intercept relative URLs (generated K8s API calls)
-  if (req.url.startsWith('/')) {
-    if (!config.baseURL) {
-      throw new Error(
-        'K8s client not configured. Provide K8S_CLIENT_CONFIG with baseURL in your app providers.'
-      );
+  intercept(
+    req: HttpRequest<unknown>,
+    next: HttpHandler
+  ): Observable<HttpEvent<unknown>> {
+    // Only intercept relative URLs (generated K8s API calls)
+    if (req.url.startsWith('/')) {
+      if (!this.config.baseURL) {
+        throw new Error(
+          'K8s client not configured. Provide K8S_CLIENT_CONFIG with baseURL in your app providers.'
+        );
+      }
+
+      // Build headers
+      const headers: Record<string, string> = {};
+
+      // Add token if provided
+      if (this.config.token) {
+        headers['Authorization'] = `Bearer ${this.config.token}`;
+      }
+
+      // Add custom headers
+      if (this.config.headers) {
+        Object.assign(headers, this.config.headers);
+      }
+
+      // Clone request with modified URL and headers
+      const clonedReq = req.clone({
+        url: `${this.config.baseURL}${req.url}`,
+        setHeaders: headers,
+      });
+
+      return next.handle(clonedReq);
     }
 
-    // Build headers
-    const headers: Record<string, string> = {};
-
-    // Add token if provided
-    if (config.token) {
-      headers['Authorization'] = `Bearer ${config.token}`;
-    }
-
-    // Add custom headers
-    if (config.headers) {
-      Object.assign(headers, config.headers);
-    }
-
-    // Clone request with modified URL and headers
-    const clonedReq = req.clone({
-      url: `${config.baseURL}${req.url}`,
-      setHeaders: headers,
-    });
-
-    return next(clonedReq);
+    // Pass through non-K8s requests unchanged
+    return next.handle(req);
   }
-
-  // Pass through non-K8s requests unchanged
-  return next(req);
-};
+}
