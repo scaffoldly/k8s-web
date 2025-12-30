@@ -12,7 +12,7 @@
   "scripts": {
     "fetch-specs": "tsx scripts/fetch-specs.ts",
     "generate": "yarn fetch-specs && yarn --cwd angular run generate && yarn --cwd react run generate",
-    "build": "yarn --cwd react run build",
+    "build": "yarn --cwd angular run build && yarn --cwd react run build",
     "lint": "yarn --cwd angular run lint && yarn --cwd react run lint",
     "format": "yarn --cwd angular run format && yarn --cwd react run format",
     "test": "yarn --cwd angular-tests run test && yarn --cwd react-tests run test"
