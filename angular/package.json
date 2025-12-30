@@ -1,14 +1,39 @@
 {
-  "name": "@k8s-web/angular",
-  "version": "1.0.0",
+  "name": "k8s-web-angular",
+  "version": "1.34.0-angular",
+  "description": "TypeScript Kubernetes API client for Angular generated from OpenAPI v3 specifications",
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "angular",
+    "api-client",
+    "openapi",
+    "typescript"
+  ],
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scaffoldly/k8s-web.git",
+    "directory": "angular"
+  },
+  "bugs": {
+    "url": "https://github.com/scaffoldly/k8s-web/issues"
+  },
+  "homepage": "https://github.com/scaffoldly/k8s-web#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
     "build": "tsup src/index.ts --format cjs --dts --sourcemap",
     "dev": "tsup src/index.ts --format cjs --dts --sourcemap --watch",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "yarn build"
   },
   "peerDependencies": {
     "@angular/common": "^17.0.0",
@@ -16,7 +41,7 @@
     "rxjs": "^7.0.0"
   },
   "devDependencies": {
-    "@k8s-web/common": "*",
+    "k8s-web-util": "*",
     "@angular/common": "^17.0.0",
     "@angular/core": "^17.0.0",
     "rxjs": "^7.0.0",

@@ -1,21 +1,49 @@
 {
-  "name": "@k8s-web/react",
-  "version": "1.0.0",
+  "name": "k8s-web-react",
+  "version": "1.34.0-react",
+  "description": "TypeScript Kubernetes API client for React with TanStack Query hooks generated from OpenAPI v3 specifications",
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "react",
+    "react-query",
+    "tanstack-query",
+    "api-client",
+    "openapi",
+    "typescript",
+    "hooks"
+  ],
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scaffoldly/k8s-web.git",
+    "directory": "react"
+  },
+  "bugs": {
+    "url": "https://github.com/scaffoldly/k8s-web/issues"
+  },
+  "homepage": "https://github.com/scaffoldly/k8s-web#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
     "build": "tsup src/index.ts --format cjs --dts --sourcemap",
     "dev": "tsup src/index.ts --format cjs --dts --sourcemap --watch",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "yarn build"
   },
   "peerDependencies": {
     "react": "^18.0.0",
     "@tanstack/react-query": "^5.0.0"
   },
   "devDependencies": {
-    "@k8s-web/common": "*",
+    "k8s-web-util": "*",
     "@types/react": "^18.0.0",
     "@tanstack/react-query": "^5.0.0",
     "react": "^18.0.0",

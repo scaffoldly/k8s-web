@@ -1,150 +1,254 @@
 # k8s-web
 
-TypeScript Kubernetes client libraries for Angular and React, generated from Kubernetes OpenAPI specifications using orval.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![npm version](https://badge.fury.io/js/k8s-web.svg)](https://badge.fury.io/js/k8s-web)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
 
-## Overview
+TypeScript Kubernetes API client libraries for Angular and React, generated from official Kubernetes OpenAPI v3 specifications.
 
-This project uses yarn workspaces to manage TypeScript client libraries for Angular and React. The clients are automatically generated from Kubernetes OpenAPI v3 specifications using orval.
+## Features
 
-## Project Structure
+- **Framework-native implementations**: Angular services with HttpClient, React hooks with TanStack Query
+- **Full type safety**: Complete TypeScript definitions for all Kubernetes API resources
+- **Multiple K8s versions**: Support for Kubernetes 1.29 through 1.34
+- **Zero axios dependency**: Uses native fetch and framework HTTP clients
+- **Auto-generated JSDoc**: Rich inline documentation from OpenAPI specs
+- **Tree-shakeable**: Organized by API group for optimal bundle sizes
 
-```
-k8s-web/
-├── angular/                 # Angular client library workspace
-│   ├── src/
-│   │   ├── generated/      # Auto-generated API clients
-│   │   └── index.ts        # Main export file
-│   └── package.json
-├── react/                   # React client library workspace
-│   ├── src/
-│   │   ├── generated/      # Auto-generated API clients
-│   │   └── index.ts        # Main export file
-│   └── package.json
-├── common/                  # Shared utilities
-│   └── src/
-│       ├── fetch-instance.ts    # Fetch-based HTTP client for React
-│       └── generate-utils.ts    # Client generation utilities
-├── scripts/
-│   └── generate-clients.ts # Client generation script
-├── Makefile                # Build automation
-└── package.json            # Root workspace configuration
-```
-
-## Usage
-
-### Generate Clients for a Kubernetes Version
-
-To generate TypeScript clients for a specific Kubernetes version:
-
-```bash
-make 1.34    # Generates clients for Kubernetes v1.34.0
-make 1.31    # Generates clients for Kubernetes v1.31.0
-```
-
-This command will:
-1. Start a kube-apiserver container for the specified version
-2. Fetch all OpenAPI v3 specifications from `/openapi/v3`
-3. Generate TypeScript clients for each API group
-4. Build both Angular and React packages with type definitions and source maps
-
-### Install Dependencies
-
-```bash
-yarn install
-```
-
-### Build Packages
-
-```bash
-yarn build
-```
-
-### Clean Generated Files
-
-```bash
-make clean
-```
-
-### Stop API Server
-
-```bash
-make stop-apiserver
-```
-
-## How It Works
-
-1. **Makefile**: Orchestrates the process by:
-   - Running kube-apiserver in a Docker container
-   - Calling the client generation script
-   - Building the packages
-
-2. **generate-clients.ts**: Walks through the OpenAPI v3 discovery endpoint and:
-   - Fetches each API group specification
-   - Saves specs to `openapi-specs/` directory
-   - Generates orval configurations dynamically
-   - Runs orval to create TypeScript clients for both Angular and React
-   - Creates index files that export all generated APIs
-
-3. **orval**: Generates TypeScript clients with:
-   - Angular: Native HttpClient with dependency injection
-   - React: Fetch API with TanStack Query hooks
-   - Full TypeScript type definitions
-   - Custom HTTP instance for SSL/auth configuration
-
-4. **tsup**: Builds the packages with:
-   - CommonJS and ESM outputs
-   - TypeScript declaration files (.d.ts)
-   - Source maps for debugging
-
-## Generated Output
-
-Each workspace generates:
-- `dist/index.js` - CommonJS bundle
-- `dist/index.mjs` - ESM bundle
-- `dist/index.d.ts` - TypeScript declarations
-- `dist/index.js.map` - Source map
-
-## Using the Generated Clients
+## Installation
 
 ### Angular
 
-```typescript
-import { getPods, createPod } from '@k8s-web/angular';
-
-// Use the generated API clients
-const pods = await getPods({ namespace: 'default' });
+```bash
+npm install k8s-web@1.34.0-angular
 ```
 
 ### React
 
-```typescript
-import { getPods, createPod } from '@k8s-web/react';
-
-// Use the generated API clients
-const pods = await getPods({ namespace: 'default' });
+```bash
+npm install k8s-web@1.34.0-react
 ```
 
-## Configuration
+Replace `1.34.0` with your desired Kubernetes version (1.29, 1.30, 1.31, 1.32, 1.33, or 1.34).
 
-### HTTP Clients
+## Usage
 
-#### Angular
-Uses Angular's native HttpClient with dependency injection. Generated services are ready to use in your Angular application without additional configuration.
+### Angular
 
-#### React
-Uses a custom fetch-based instance at `common/src/fetch-instance.ts` with TanStack Query that:
-- Configures the base URL for the Kubernetes API server
-- Handles authentication headers
-- Provides proper TypeScript typing
+Configure the client in your app:
 
-You can modify the fetch instance to add authentication, custom headers, or other HTTP configuration.
+```typescript
+import { ApplicationConfig } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { k8sClientInterceptor, K8S_CLIENT_CONFIG } from 'k8s-web';
 
-## Requirements
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(withInterceptors([k8sClientInterceptor])),
+    {
+      provide: K8S_CLIENT_CONFIG,
+      useValue: {
+        baseURL: 'https://my-cluster.example.com',
+        token: 'my-service-account-token',
+      },
+    },
+  ],
+};
+```
+
+Use the generated services:
+
+```typescript
+import { CoreV1Service } from 'k8s-web';
+import type { IoK8sApiCoreV1Pod } from 'k8s-web';
+
+@Component({
+  // ...
+})
+export class MyComponent {
+  constructor(private coreV1: CoreV1Service) {}
+
+  listPods() {
+    this.coreV1.listNamespacedPod({ namespace: 'default' }).subscribe(pods => {
+      console.log(pods.items);
+    });
+  }
+}
+```
+
+### React
+
+Configure the client before use:
+
+```typescript
+import { configureK8sClient } from 'k8s-web';
+
+configureK8sClient({
+  baseURL: 'https://my-cluster.example.com',
+  token: 'my-service-account-token',
+});
+```
+
+Use the generated hooks:
+
+```typescript
+import { useListCoreV1NamespacedPod } from 'k8s-web';
+import type { IoK8sApiCoreV1Pod } from 'k8s-web';
+
+function MyComponent() {
+  const { data, isLoading, error } = useListCoreV1NamespacedPod({
+    namespace: 'default',
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {data?.items.map((pod: IoK8sApiCoreV1Pod) => (
+        <li key={pod.metadata?.uid}>{pod.metadata?.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### React Convenience Hooks
+
+Simplified hooks for common operations:
+
+```typescript
+import { usePods, useDeployments, useNamespaces } from 'k8s-web';
+
+function Dashboard() {
+  // Simple pod listing
+  const { data: pods } = usePods('default');
+
+  // With label selector and auto-refresh
+  const { data: deployments } = useDeployments('default', {
+    labelSelector: 'app=frontend',
+    query: { refetchInterval: 5000 },
+  });
+
+  // List all namespaces
+  const { data: namespaces } = useNamespaces();
+
+  return <div>{/* render resources */}</div>;
+}
+```
+
+Available convenience hooks: `usePods`, `useDeployments`, `useStatefulSets`, `useDaemonSets`, `useServices`, `useConfigMaps`, `useSecrets`, `useNamespaces`, `useNodes`
+
+## Development
+
+### Prerequisites
 
 - Node.js 18+
 - Yarn 1.22+
 - Docker (for running kube-apiserver)
 
+### Project Structure
+
+```
+k8s-web/
+├── angular/                 # Angular client library
+│   ├── src/
+│   │   ├── generated/      # Auto-generated (46 API groups + models)
+│   │   ├── config.ts       # Configuration interface
+│   │   ├── interceptor.ts  # HTTP interceptor
+│   │   └── index.ts        # Barrel exports
+│   └── dist/               # Built package
+├── react/                   # React client library
+│   ├── src/
+│   │   ├── generated/      # Auto-generated (46 API groups + models)
+│   │   ├── config.ts       # Configuration
+│   │   ├── fetch-instance.ts # Fetch client
+│   │   ├── hooks.ts        # Convenience hooks
+│   │   └── index.ts        # Barrel exports
+│   └── dist/               # Built package
+├── util/                    # Dev-only generation utilities
+├── angular-tests/           # Angular integration tests
+├── react-tests/             # React integration tests
+└── openapi-specs/           # Fetched K8s OpenAPI specs
+```
+
+### Generate Clients
+
+```bash
+# Generate for specific Kubernetes version
+make 1.34                    # Both Angular and React
+make angular 1.34            # Angular only
+make react 1.34              # React only
+
+# Publish after building and testing
+PUBLISH=true make angular 1.34
+```
+
+### Build & Test
+
+```bash
+# Install dependencies
+yarn install
+
+# Fetch OpenAPI specs (requires running kube-apiserver)
+yarn fetch-specs
+
+# Generate TypeScript clients
+yarn generate
+
+# Build packages
+yarn build
+
+# Run integration tests
+make test                    # Both frameworks
+make test-angular            # Angular only
+make test-react              # React only
+```
+
+### Clean Up
+
+```bash
+make clean                   # Remove generated code and builds
+make clean-all              # Also remove specs and Docker containers
+make stop-apiserver         # Stop Docker containers only
+```
+
+## How It Works
+
+1. **Docker Compose** starts etcd and kube-apiserver for the specified K8s version
+2. **Fetch specs** downloads all 46 API group OpenAPI v3 specifications
+3. **Merge specs** combines them into a single OpenAPI document
+4. **Orval** generates TypeScript clients using tags-split mode (one file per API group)
+5. **JSDoc injection** adds inline documentation from OpenAPI descriptions
+6. **Build** bundles with tsup (CommonJS + type definitions + source maps)
+7. **Test** runs Playwright integration tests against real kube-apiserver
+8. **Publish** temporarily renames packages to `k8s-web` and publishes with version tags
+
+## Publishing
+
+Packages are published to npm as `k8s-web` with version-specific tags:
+
+- Angular: `k8s-web@1.34.0-angular`
+- React: `k8s-web@1.34.0-react`
+
+Users install by specifying the full version including the framework suffix.
+
 ## License
 
-MIT
+GNU General Public License v3.0
+
+See [LICENSE](LICENSE) for full text.
+
+## Links
+
+- [npm package](https://www.npmjs.com/package/k8s-web)
+- [GitHub repository](https://github.com/scaffoldly/k8s-web)
+- [Issue tracker](https://github.com/scaffoldly/k8s-web/issues)
+
+## Contributing
+
+Contributions are welcome! Please read [CLAUDE.md](CLAUDE.md) for detailed project documentation and architecture.
+
+## Credits
+
+Generated using [Orval](https://orval.dev) from official Kubernetes OpenAPI specifications.

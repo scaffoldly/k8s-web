@@ -28,7 +28,15 @@
       "Bash(npx eslint:*)",
       "Bash(npx tsc:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:orval.dev)",
+      "Bash(yarn lint:*)",
+      "Bash(yarn --version)",
+      "Bash(yarn list:*)",
+      "Bash(npx playwright install chromium)",
+      "Bash(git mv:*)",
+      "Bash(grep:*)"
     ]
   }
 }

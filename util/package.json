@@ -1,5 +1,5 @@
 {
-  "name": "@k8s-web/common",
+  "name": "k8s-web-util",
   "version": "1.0.0",
   "private": true,
   "scripts": {

@@ -6,9 +6,165 @@ import path from 'path';
 import { glob } from 'glob';
 import { execSync } from 'child_process';
 
+interface OpenAPIOperation {
+  operationId: string;
+  description?: string;
+  summary?: string;
+  parameters?: Array<{
+    name: string;
+    in: string;
+    description?: string;
+    required?: boolean;
+    schema?: any;
+  }>;
+}
+
 export function sanitizeGroupName(fileName: string): string {
   // Remove .json extension
   return fileName.replace('.json', '');
+}
+
+/**
+ * Extract operation information from OpenAPI spec
+ */
+function extractOperations(spec: any): Map<string, OpenAPIOperation> {
+  const operations = new Map<string, OpenAPIOperation>();
+
+  if (!spec.paths) return operations;
+
+  for (const [path, pathItem] of Object.entries(spec.paths as Record<string, any>)) {
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (
+        typeof operation === 'object' &&
+        operation.operationId &&
+        ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'].includes(method)
+      ) {
+        operations.set(operation.operationId, {
+          operationId: operation.operationId,
+          description: operation.description,
+          summary: operation.summary,
+          parameters: operation.parameters,
+        });
+      }
+    }
+  }
+
+  return operations;
+}
+
+/**
+ * Convert operationId to function names used by Orval
+ * Examples:
+ * - listCoreV1NamespacedPod -> listCoreV1NamespacedPod (query function)
+ * - listCoreV1NamespacedPod -> useListCoreV1NamespacedPod (React hook)
+ * - listCoreV1NamespacedPod -> getListCoreV1NamespacedPodQueryOptions (query options)
+ */
+function getGeneratedFunctionNames(operationId: string, client: string): string[] {
+  const names: string[] = [];
+
+  if (client === 'react-query') {
+    // React Query generates: hook, query function, and query options
+    names.push(`use${operationId.charAt(0).toUpperCase()}${operationId.slice(1)}`);
+    names.push(operationId);
+    names.push(`get${operationId.charAt(0).toUpperCase()}${operationId.slice(1)}QueryOptions`);
+  } else if (client === 'angular') {
+    // Angular generates service methods
+    names.push(operationId);
+  }
+
+  return names;
+}
+
+/**
+ * Generate JSDoc comment from operation info
+ */
+function generateJSDoc(operation: OpenAPIOperation): string {
+  const lines: string[] = ['/**'];
+
+  // Add description or summary
+  const description = operation.description || operation.summary;
+  if (description) {
+    // Split multi-line descriptions
+    const descLines = description.split('\n');
+    descLines.forEach((line) => {
+      lines.push(` * ${line}`);
+    });
+  } else {
+    lines.push(` * ${operation.operationId}`);
+  }
+
+  // Add parameters if available
+  if (operation.parameters && operation.parameters.length > 0) {
+    lines.push(' *');
+    operation.parameters.forEach((param) => {
+      const required = param.required ? '' : '(optional) ';
+      const paramDesc = param.description || '';
+      lines.push(` * @param ${param.name} ${required}${paramDesc}`);
+    });
+  }
+
+  lines.push(' */');
+  return lines.join('\n');
+}
+
+/**
+ * Inject JSDoc comments into generated TypeScript files
+ */
+async function injectJSDocs(
+  operations: Map<string, OpenAPIOperation>,
+  srcGeneratedDir: string,
+  client: string,
+  prettierConfig: any
+) {
+  console.log('\nInjecting JSDoc comments from OpenAPI descriptions...');
+
+  const files = await glob('**/*.ts', { cwd: srcGeneratedDir, absolute: true });
+  let injectedCount = 0;
+
+  for (const file of files) {
+    let content = readFileSync(file, 'utf-8');
+    let modified = false;
+
+    // For each operation, try to find and annotate the generated functions
+    for (const [operationId, operation] of operations.entries()) {
+      const functionNames = getGeneratedFunctionNames(operationId, client);
+      const jsDoc = generateJSDoc(operation);
+
+      for (const funcName of functionNames) {
+        // Match function declarations that don't already have JSDoc
+        // Patterns to match:
+        // - export const functionName =
+        // - export function functionName(
+        // - functionName(
+        const patterns = [
+          new RegExp(`(?<!\\*)\\n(export const ${funcName} = )`, 'g'),
+          new RegExp(`(?<!\\*)\\n(export function ${funcName}\\()`, 'g'),
+          new RegExp(`(?<!\\*)\\n(  ${funcName}\\()`, 'g'), // Service methods with indentation
+        ];
+
+        for (const pattern of patterns) {
+          const matches = content.match(pattern);
+          if (matches) {
+            content = content.replace(pattern, `\n${jsDoc}\n$1`);
+            modified = true;
+            injectedCount++;
+            break; // Only annotate once per function name
+          }
+        }
+      }
+    }
+
+    if (modified) {
+      // Format the modified file
+      const formatted = await prettier.format(content, {
+        ...prettierConfig,
+        parser: 'typescript',
+      });
+      writeFileSync(file, formatted);
+    }
+  }
+
+  console.log(`✓ Injected JSDoc comments for ${injectedCount} functions`);
 }
 
 function generateReactHooks(): string {
@@ -337,15 +493,42 @@ export async function generateClients(options: GenerateOptions) {
       client,
       mode: 'tags-split',
       schemas: path.join(srcGeneratedDir, 'models'),
+      override: {
+        useDates: false, // Keep as strings for consistency
+        jsDoc: {
+          // Generate JSDoc for schema properties with useful OpenAPI metadata
+          filter: (schema: any) => {
+            const allowed = [
+              'type',
+              'format',
+              'description',
+              'maxLength',
+              'minLength',
+              'minimum',
+              'maximum',
+              'pattern',
+              'nullable',
+              'enum',
+              'default',
+              'example',
+            ];
+
+            return Object.fromEntries(
+              Object.entries(schema).filter(([key]) => allowed.includes(key))
+            );
+          },
+        },
+      },
     };
 
     // Add mutator for axios and react-query clients
     if ((client === 'axios' || client === 'react-query') && mutatorPath) {
-      outputConfig.override = {
-        mutator: {
-          path: mutatorPath,
-          name: 'customInstance',
-        },
+      if (!outputConfig.override) {
+        outputConfig.override = {};
+      }
+      outputConfig.override.mutator = {
+        path: mutatorPath,
+        name: 'customInstance',
       };
     }
 
@@ -355,6 +538,22 @@ export async function generateClients(options: GenerateOptions) {
     });
 
     console.log(`  ✓ Generated Kubernetes client\n`);
+
+    // Extract operations for JSDoc injection
+    const operations = extractOperations(mergedSpec);
+
+    // Read prettier config for JSDoc injection
+    const prettierConfigPath = path.join(rootDir, '.prettierrc');
+    let prettierConfig = {};
+    try {
+      const configContent = readFileSync(prettierConfigPath, 'utf-8');
+      prettierConfig = JSON.parse(configContent);
+    } catch (error) {
+      console.warn('Could not read .prettierrc for JSDoc injection');
+    }
+
+    // Inject JSDoc comments from OpenAPI descriptions
+    await injectJSDocs(operations, srcGeneratedDir, client, prettierConfig);
   } catch (error) {
     console.error(`  ✗ Failed to generate client:`, error);
     process.exit(1);

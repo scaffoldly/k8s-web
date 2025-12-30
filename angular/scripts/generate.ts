@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { generateClients } from '../../common/src/generate-utils';
+import { generateClients } from '../../util/src/generate-utils';
 import path from 'path';
 
 generateClients({

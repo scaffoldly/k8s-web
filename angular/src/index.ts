@@ -38,6 +38,8 @@ export * from './generated/policy/policy.service';
 export * from './generated/policy-v1/policy-v1.service';
 export * from './generated/rbac-authorization/rbac-authorization.service';
 export * from './generated/rbacauthorization-v1/rbacauthorization-v1.service';
+export * from './generated/resource/resource.service';
+export * from './generated/resource-v1/resource-v1.service';
 export * from './generated/scheduling/scheduling.service';
 export * from './generated/scheduling-v1/scheduling-v1.service';
 export * from './generated/storage/storage.service';
@@ -51,7 +53,3 @@ export * from './generated/models';
 // Re-export configuration utilities
 export * from './config';
 export * from './interceptor';
-
-// Re-export additional interceptors
-export * from './error-handling.interceptor';
-export * from './retry.interceptor';

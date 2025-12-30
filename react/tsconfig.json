@@ -5,6 +5,6 @@
     "lib": ["ES2020", "DOM"],
     "jsx": "react"
   },
-  "include": ["src/**/*", "../common/src/**/*"],
+  "include": ["src/**/*", "../util/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

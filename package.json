@@ -3,16 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "common",
+    "util",
     "angular",
-    "react"
+    "react",
+    "angular-tests",
+    "react-tests"
   ],
   "scripts": {
     "fetch-specs": "tsx scripts/fetch-specs.ts",
-    "generate": "yarn fetch-specs && yarn workspace @k8s-web/angular generate && yarn workspace @k8s-web/react generate",
-    "build": "yarn workspace @k8s-web/angular build && yarn workspace @k8s-web/react build",
-    "lint": "yarn workspace @k8s-web/angular lint && yarn workspace @k8s-web/react lint",
-    "format": "yarn workspace @k8s-web/angular format && yarn workspace @k8s-web/react format"
+    "generate": "yarn fetch-specs && yarn --cwd angular run generate && yarn --cwd react run generate",
+    "build": "yarn --cwd angular run build && yarn --cwd react run build",
+    "lint": "yarn --cwd angular run lint && yarn --cwd react run lint",
+    "format": "yarn --cwd angular run format && yarn --cwd react run format",
+    "test": "yarn --cwd angular-tests run test && yarn --cwd react-tests run test"
   },
   "devDependencies": {
     "@types/eslint": "^9.6.1",

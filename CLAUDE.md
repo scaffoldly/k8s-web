@@ -16,7 +16,7 @@ k8s-web/
 ├── openapi-specs/           # Fetched OpenAPI v3 specs from kube-apiserver
 │   ├── *.json              # Individual API group specs (46 files)
 │   └── _merged.json        # Merged single spec (generated)
-├── common/                  # Dev-only utilities (not built/published)
+├── util/                  # Dev-only utilities (not built/published)
 │   └── src/
 │       └── generate-utils.ts    # Shared client generation logic
 ├── angular/                 # Angular client library workspace
@@ -89,6 +89,28 @@ k8s-web/
 - Tried `openapi-merge-cli` but it failed on duplicate path conflicts in K8s specs
 - Creates `_merged.json` in openapi-specs directory (excluded from version control via `_` prefix)
 
+### 4. Automatic JSDoc Generation
+
+- **Problem**: Orval doesn't automatically generate JSDoc comments from OpenAPI operation descriptions
+- **Solution**: Custom post-processing step that injects JSDoc comments after Orval generation
+- **Implementation**: `injectJSDocs()` function in `util/src/generate-utils.ts`
+  - Extracts operation descriptions and parameters from merged OpenAPI spec
+  - Matches operations to generated functions by operationId
+  - Injects formatted JSDoc comments before function declarations
+  - Supports both React hooks (use*, get*QueryOptions) and Angular service methods
+- **Schema JSDoc**: Orval's built-in `jsDoc.filter` generates comments for TypeScript type properties with OpenAPI metadata (type, format, description, enum, validation constraints, etc.)
+- **Operation JSDoc**: Custom injection adds comments to functions/hooks with operation descriptions and parameter documentation
+- **Result**: Consumers see rich documentation in their IDE intellisense without needing separate docs
+- **Example**:
+  ```typescript
+  /**
+   * list or watch objects of kind Pod
+   * @param namespace (optional) object name and auth scope
+   * @param labelSelector (optional) A selector to restrict the list
+   */
+  export const useListCoreV1NamespacedPod = ...
+  ```
+
 ## How It Works
 
 ### Fetching Specs
@@ -129,7 +151,7 @@ yarn workspace @k8s-web/angular generate
 yarn workspace @k8s-web/react generate
 ```
 
-**Generation Process** (in `common/src/generate-utils.ts`):
+**Generation Process** (in `util/src/generate-utils.ts`):
 
 1. **Merge specs**: Combines all `openapi-specs/*.json` files into `_merged.json`
    - Merges paths, schemas, and other components
@@ -138,18 +160,30 @@ yarn workspace @k8s-web/react generate
 2. **Generate client**: Calls Orval with merged spec
    - **Angular**: Generates Angular services with HttpClient
    - **React**: Generates TanStack Query hooks with fetch
+   - Orval's `jsDoc.filter` generates JSDoc for schema/type properties
 
-3. **Create index**: Generates `src/index.ts` that re-exports everything
+3. **Inject JSDoc comments**: Custom post-processing step
+   - Extracts operation metadata from merged OpenAPI spec
+   - Injects JSDoc comments into generated functions/hooks
+   - Adds descriptions and parameter documentation
+   - ~1,463 functions annotated per client
 
-4. **Format**: Runs Prettier on all generated files
+4. **Create index**: Generates `src/index.ts` that re-exports everything
 
-5. **Lint**: Runs ESLint on `src/generated/**/*.ts`
+5. **Generate convenience hooks** (React only):
+   - Auto-generates high-level hooks (usePods, useDeployments, etc.)
+   - Wraps generated hooks with simpler API
+   - Adds user-friendly JSDoc examples
+
+6. **Format**: Runs Prettier on all generated files
+
+7. **Lint**: Runs ESLint on `src/generated/**/*.ts`
    - **CRITICAL**: Build fails if ESLint errors are found
    - Ensures generated code meets quality standards
 
 ## Key Files
 
-### `common/src/generate-utils.ts`
+### `util/src/generate-utils.ts`
 
 The heart of the generation system. Contains:
 
@@ -256,7 +290,7 @@ Configure the client in your app configuration:
 
 ```typescript
 import { ApplicationConfig } from '@angular/core';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/util/http';
 import { k8sClientInterceptor, K8S_CLIENT_CONFIG } from '@k8s-web/angular';
 
 export const appConfig: ApplicationConfig = {
@@ -299,7 +333,7 @@ The Angular client includes additional interceptors for enhanced error handling 
 
 ```typescript
 import { ApplicationConfig } from '@angular/core';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/util/http';
 import {
   k8sClientInterceptor,
   k8sErrorHandlingInterceptor,
@@ -502,7 +536,7 @@ All convenience hooks support:
 - `@tanstack/react-query`: Data fetching library
 - `tsup`: TypeScript bundler
 
-### Common Workspace (Dev-Only)
+### Util Workspace (Dev-Only)
 
 - **No runtime dependencies**
 - **Not built or published** - only contains dev utilities
@@ -540,7 +574,7 @@ Removes all generated code and build artifacts:
 - `openapi-specs/_merged.json` - Merged OpenAPI spec
 - `openapi-specs/_merge-config.json` - Merge configuration (if exists)
 
-**Note**: `common/` is NOT built (it's dev-only utilities)
+**Note**: `util/` is NOT built (it's dev-only utilities)
 **KEEPS** the fetched OpenAPI specs (`openapi-specs/*.json`)
 
 ### `make clean-all`
@@ -590,7 +624,7 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
 
 ### TypeScript Configuration
 
-- **React**: `tsconfig.json` includes `../common/src/**/*` to resolve cross-workspace imports
+- **React**: `tsconfig.json` includes `../util/src/**/*` to resolve cross-workspace imports
 - Both workspaces remove `rootDir` constraint to allow importing from common
 
 ### ESLint Integration
@@ -610,7 +644,7 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
 
 ### Issue: "File is not under rootDir"
 
-**Solution**: Removed `rootDir` from React's tsconfig.json and added `../common/src/**/*` to `include`
+**Solution**: Removed `rootDir` from React's tsconfig.json and added `../util/src/**/*` to `include`
 
 ### Issue: "Could not find module 'rxjs'"
 
@@ -630,7 +664,7 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
 - ✅ **ESLint enforced** at generation time (fails build on errors)
 - ✅ **Prettier formats** all generated code with proper singleQuote configuration
 - ✅ **Barrel exports** from index.ts for simple imports + tag-specific imports for tree-shaking
-- ✅ **Common is dev-only** - private package, no runtime dependencies, not built or published
+- ✅ **Util is dev-only** - private package, no runtime dependencies, not built or published
 - ✅ **React is standalone** - includes its own fetch-instance.ts (no dependency on common)
 - ✅ **Both workspaces build successfully** as standalone packages
 - ✅ **SSL bypass configured** for kube-apiserver self-signed certs (`NODE_TLS_REJECT_UNAUTHORIZED='0'`)
@@ -648,6 +682,20 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
   - `k8sErrorHandlingInterceptor` - parses K8s API errors with detailed messages
   - `k8sRetryInterceptor` - automatic retries with exponential backoff
   - Configurable retry behavior (maxRetries, delays, retryable status codes)
+- ✅ **JSDoc documentation** - comprehensive inline documentation
+  - Automatic JSDoc generation from OpenAPI descriptions (~1,463 functions per client)
+  - Schema properties documented with OpenAPI metadata (type, format, constraints, enums)
+  - Operation functions documented with descriptions and parameter details
+  - Consumers see documentation in IDE intellisense without separate docs
+  - Custom post-processing injects JSDoc for operations
+  - Orval's built-in `jsDoc.filter` handles schema/type documentation
+- ✅ **Integration tests** - Playwright-based tests
+  - React integration tests using simple HTML page
+  - Tests connect to real kube-apiserver (not mocked)
+  - Verifies namespace listing from Kubernetes API
+  - Run with `make test` (requires kube-apiserver running)
+  - Playwright with web security disabled for CORS bypass
+  - Simple HTTP server setup for easy testing
 
 ## Known Issues & Limitations
 
@@ -662,9 +710,8 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
    - Add proper `package.json` metadata (description, repository, etc.)
    - Consider separate versioning for Angular and React packages
    - Configure npm publishing workflow
-2. **Documentation**: Generate API docs from OpenAPI specs using tools like TypeDoc
-3. **Testing**: Add integration tests for generated clients
-4. **Optimization**: Consider adding `.gitignore` patterns for generated files if repository size becomes an issue
+2. **Optimization**: Consider adding `.gitignore` patterns for generated files if repository size becomes an issue
+3. **Angular integration tests**: Add proper Angular integration tests (currently only React is tested)
 
 ## Quick Reference
 
@@ -710,4 +757,4 @@ docker logs k8s-etcd
 - **OpenAPI specs**: `openapi-specs/*.json`
 - **Merged spec**: `openapi-specs/_merged.json`
 - **React HTTP client**: `react/src/fetch-instance.ts`
-- **Generation utilities**: `common/src/generate-utils.ts`
+- **Generation utilities**: `util/src/generate-utils.ts`

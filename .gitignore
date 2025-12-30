@@ -142,3 +142,8 @@ vite.config.ts.timestamp-*
 angular/src/generated/
 react/src/generated/
 openapi-specs/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+.playwright/

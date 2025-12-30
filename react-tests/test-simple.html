@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Integration Test - @k8s-web/react</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .error {
+        color: red;
+      }
+      #status {
+        font-weight: bold;
+      }
+      ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      li {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>React Integration Test</h1>
+      <h2>@k8s-web/react</h2>
+
+      <div class="status">
+        <p>Status: <span id="status">Initializing...</span></p>
+      </div>
+
+      <div class="namespaces">
+        <h3>Kubernetes Namespaces</h3>
+        <p id="loading" style="display:none;">Loading...</p>
+        <p id="error" class="error" style="display:none;"></p>
+        <ul id="namespace-list"></ul>
+      </div>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const listEl = document.getElementById('namespace-list');
+
+      statusEl.textContent = 'Loading namespaces...';
+      loadingEl.style.display = 'block';
+
+      // Test direct fetch to Kubernetes API
+      fetch('https://localhost:6443/api/v1/namespaces', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer secret-token'
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          loadingEl.style.display = 'none';
+          statusEl.textContent = `Loaded ${data.items.length} namespaces`;
+
+          data.items.forEach(ns => {
+            const li = document.createElement('li');
+            li.textContent = ns.metadata.name;
+            listEl.appendChild(li);
+          });
+        })
+        .catch(err => {
+          loadingEl.style.display = 'none';
+          statusEl.textContent = 'Error loading namespaces';
+          errorEl.textContent = `Error: ${err.message}`;
+          errorEl.style.display = 'block';
+        });
+    </script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 import { getK8sClientConfig } from './config';
 
-export const customInstance = <T,>(config: {
+export const customInstance = <T>(config: {
   url: string;
   method: string;
   params?: any;
