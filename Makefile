@@ -73,6 +73,9 @@ test-angular:
 	@$(MAKE) .check-apiserver
 	@$(MAKE) .install-playwright
 	@echo ""
+	@echo "Cleaning up any orphaned servers on port 4200..."
+	@pkill -f "serve -l 4200" 2>/dev/null || true
+	@sleep 1
 	@echo "Starting test server on port 4200..."
 	@cd angular-tests && npx serve -l 4200 --no-request-logging --no-clipboard . > /tmp/angular-test-server.log 2>&1 & \
 	SERVER_PID=$$!; \
@@ -91,6 +94,9 @@ test-react:
 	@$(MAKE) .check-apiserver
 	@$(MAKE) .install-playwright
 	@echo ""
+	@echo "Cleaning up any orphaned servers on port 3000..."
+	@pkill -f "serve -l 3000" 2>/dev/null || true
+	@sleep 1
 	@echo "Starting test server on port 3000..."
 	@cd react-tests && npx serve -l 3000 . > /tmp/react-test-server.log 2>&1 & \
 	SERVER_PID=$$!; \

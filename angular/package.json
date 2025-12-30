@@ -21,24 +21,23 @@
   },
   "homepage": "https://github.com/scaffoldly/k8s-web#readme",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "files": [
     "dist",
+    "src",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json",
+    "dev": "tsc --project tsconfig.build.json --watch",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "yarn build"

@@ -3,7 +3,7 @@
  * Tests the @k8s-web/angular library by listing Kubernetes namespaces
  */
 import { bootstrapApplication } from '@angular/platform-browser';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { CoreV1Service, K8S_CLIENT_CONFIG, k8sClientInterceptor } from 'k8s-web-angular';
@@ -65,12 +65,12 @@ import { CoreV1Service, K8S_CLIENT_CONFIG, k8sClientInterceptor } from 'k8s-web-
   ],
 })
 export class AppComponent implements OnInit {
-  private coreV1 = inject(CoreV1Service);
-
   status = 'Initializing...';
   namespaces: string[] = [];
   loading = false;
   error = '';
+
+  constructor(private coreV1: CoreV1Service) {}
 
   ngOnInit() {
     this.loadNamespaces();

@@ -40,7 +40,9 @@
       "WebFetch(domain:github.com)",
       "Bash(gh run view:*)",
       "Bash(kill:*)",
-      "Bash(pkill -f \"serve -l 3000\")"
+      "Bash(pkill -f \"serve -l 3000\")",
+      "Bash(yarn why:*)",
+      "Bash(yarn --cwd angular run build:*)"
     ]
   }
 }
