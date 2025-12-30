@@ -20,14 +20,8 @@
     "url": "https://github.com/scaffoldly/k8s-web/issues"
   },
   "homepage": "https://github.com/scaffoldly/k8s-web#readme",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
+  "main": "./fesm2022/k8s-web-angular.mjs",
+  "types": "./types/k8s-web-angular.d.ts",
   "files": [
     "dist",
     "README.md",
@@ -35,8 +29,8 @@
   ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
-    "build": "rm -rf dist && tsc --project tsconfig.build.json",
-    "dev": "tsc --project tsconfig.build.json --watch",
+    "build": "ng-packagr -p ng-package.json",
+    "dev": "ng-packagr -p ng-package.json --watch",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "yarn build"
@@ -45,6 +39,9 @@
     "@angular/common": "^17.0.0",
     "@angular/core": "^17.0.0",
     "rxjs": "^7.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
     "@angular/common": "^17.0.0",
