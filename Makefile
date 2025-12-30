@@ -147,6 +147,8 @@ angular react:
 		sleep 30; \
 		echo "Updating package version to $$VERSION.0-$@..."; \
 		$(MAKE) update-version VERSION=$$VERSION; \
+		echo "Fetching OpenAPI specs from kube-apiserver..."; \
+		yarn fetch-specs; \
 		echo "Generating $@ client..."; \
 		yarn --cwd $@ run generate; \
 		echo "Building $@ package..."; \
@@ -189,8 +191,10 @@ angular react:
 		sleep 30; \
 		echo "Updating package versions to $@.0-angular and $@.0-react..."; \
 		$(MAKE) update-version VERSION=$@; \
+		echo "Fetching OpenAPI specs from kube-apiserver..."; \
+		yarn fetch-specs; \
 		echo "Generating client libraries..."; \
-		K8S_VERSION=$@ yarn generate; \
+		yarn --cwd angular run generate && yarn --cwd react run generate; \
 		echo "Building packages..."; \
 		yarn build; \
 		echo "Running tests..."; \
