@@ -11,10 +11,11 @@
     "test": "playwright test"
   },
   "dependencies": {
-    "k8s-web-angular": "file:../angular",
     "@angular/common": "^17.0.0",
     "@angular/core": "^17.0.0",
     "@angular/platform-browser": "^17.0.0",
+    "@angular/platform-browser-dynamic": "^17.0.0",
+    "k8s-web-angular": "file:../angular",
     "rxjs": "^7.8.0",
     "zone.js": "^0.14.0"
   },

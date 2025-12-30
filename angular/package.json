@@ -21,7 +21,15 @@
   },
   "homepage": "https://github.com/scaffoldly/k8s-web#readme",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
     "dist",
     "README.md",
@@ -29,8 +37,8 @@
   ],
   "scripts": {
     "generate": "tsx scripts/generate.ts",
-    "build": "tsup src/index.ts --format cjs --dts --sourcemap",
-    "dev": "tsup src/index.ts --format cjs --dts --sourcemap --watch",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "yarn build"
