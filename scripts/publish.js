@@ -16,28 +16,36 @@ function writePackage(pkgPath, pkg) {
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
-function renameTok8sWeb() {
+function renameTok8sWeb(publishAngular, publishReact) {
   const angularPkg = readPackage(angularPkgPath);
   const reactPkg = readPackage(reactPkgPath);
 
-  angularPkg.name = 'k8s-web';
-  reactPkg.name = 'k8s-web';
+  if (publishAngular) {
+    angularPkg.name = 'k8s-web';
+    writePackage(angularPkgPath, angularPkg);
+  }
 
-  writePackage(angularPkgPath, angularPkg);
-  writePackage(reactPkgPath, reactPkg);
+  if (publishReact) {
+    reactPkg.name = 'k8s-web';
+    writePackage(reactPkgPath, reactPkg);
+  }
 
   return { angularVersion: angularPkg.version, reactVersion: reactPkg.version };
 }
 
-function revertNames() {
+function revertNames(publishAngular, publishReact) {
   const angularPkg = readPackage(angularPkgPath);
   const reactPkg = readPackage(reactPkgPath);
 
-  angularPkg.name = 'k8s-web-angular';
-  reactPkg.name = 'k8s-web-react';
+  if (publishAngular) {
+    angularPkg.name = 'k8s-web-angular';
+    writePackage(angularPkgPath, angularPkg);
+  }
 
-  writePackage(angularPkgPath, angularPkg);
-  writePackage(reactPkgPath, reactPkg);
+  if (publishReact) {
+    reactPkg.name = 'k8s-web-react';
+    writePackage(reactPkgPath, reactPkg);
+  }
 }
 
 function publish() {
@@ -54,7 +62,7 @@ function publish() {
 
   // Step 1: Rename packages
   console.log('Step 1: Temporarily renaming packages to "k8s-web"...');
-  const { angularVersion, reactVersion } = renameTok8sWeb();
+  const { angularVersion, reactVersion } = renameTok8sWeb(publishAngular, publishReact);
   console.log('✓ Renamed packages\n');
 
   try {
@@ -79,7 +87,7 @@ function publish() {
 
     // Success
     console.log(`Step ${stepNum}: Reverting package names...`);
-    revertNames();
+    revertNames(publishAngular, publishReact);
     console.log('✓ Reverted package names\n');
 
     if (dryRun) {
@@ -101,7 +109,7 @@ function publish() {
   } catch (error) {
     // Revert on failure
     console.error('\n✗ Publish failed, reverting package names...');
-    revertNames();
+    revertNames(publishAngular, publishReact);
     console.error('✓ Reverted package names');
     process.exit(1);
   }
