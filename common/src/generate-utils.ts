@@ -128,9 +128,10 @@ export async function generateClients(options: GenerateOptions) {
     );
 
     const outputConfig: any = {
-      target: path.join(srcGeneratedDir, 'kubernetes.ts'),
+      target: srcGeneratedDir,
       client,
-      mode: 'single',
+      mode: 'tags-split',
+      schemas: path.join(srcGeneratedDir, 'models'),
     };
 
     // Add mutator for axios and react-query clients
@@ -154,29 +155,64 @@ export async function generateClients(options: GenerateOptions) {
     process.exit(1);
   }
 
-  // Create index file that re-exports everything
+  // Create index file that re-exports everything from all tag folders
   console.log('Creating index file...');
   const indexPath = path.join(srcGeneratedDir, '..', 'index.ts');
-  const indexContent = `export * from './generated/kubernetes';\n`;
+
+  // Get all tag directories
+  const tagDirs = readdirSync(srcGeneratedDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory() && dirent.name !== 'models')
+    .map(dirent => dirent.name)
+    .sort();
+
+  const indexContent = tagDirs
+    .map(tag => {
+      const fileName = client === 'angular' ? `${tag}.service` : tag;
+      return `export * from './generated/${tag}/${fileName}';`;
+    })
+    .join('\n') + '\n\n' +
+    '// Re-export common models\n' +
+    'export * from \'./generated/models\';\n';
 
   // Format the index file content before writing
-  const prettierConfig = (await prettier.resolveConfig(rootDir)) || {};
+  const prettierConfigPath = path.join(rootDir, '.prettierrc');
+  let prettierConfig = {};
+  try {
+    const configContent = readFileSync(prettierConfigPath, 'utf-8');
+    prettierConfig = JSON.parse(configContent);
+  } catch (error) {
+    console.warn('Could not read .prettierrc, using defaults');
+  }
+
   const formattedIndex = await prettier.format(indexContent, {
     ...prettierConfig,
-    filepath: indexPath,
+    parser: 'typescript',
   });
 
   writeFileSync(indexPath, formattedIndex);
-  console.log(`✓ Created index file`);
+  console.log(`✓ Created index file with ${tagDirs.length} tag exports`);
 
   console.log(`\n✓ ${projectName} client generation complete!`);
   console.log('\nUsage:');
-  console.log(`  import { CoreV1Api } from '@k8s-web/${projectName.toLowerCase()}';`);
+  console.log(`  // Import from root (barrel exports):`);
+  console.log(`  import { CoreV1Service } from '@k8s-web/${projectName.toLowerCase()}';`);
+  console.log(`  `);
+  console.log(`  // Or import from specific tags for better tree-shaking:`);
+  console.log(`  import { CoreV1Service } from '@k8s-web/${projectName.toLowerCase()}/core_v1';`);
 
   // Format generated code
   console.log('\nFormatting generated code with prettier...');
   try {
-    const prettierConfig = (await prettier.resolveConfig(rootDir)) || {};
+    // Read .prettierrc directly to ensure config is applied
+    const prettierConfigPath = path.join(rootDir, '.prettierrc');
+    let prettierConfig = {};
+    try {
+      const configContent = readFileSync(prettierConfigPath, 'utf-8');
+      prettierConfig = JSON.parse(configContent);
+    } catch (error) {
+      console.warn('Could not read .prettierrc for formatting');
+    }
+
     const files = await glob('src/**/*.ts', { cwd: projectRoot, absolute: true });
 
     let formatted = 0;
@@ -184,7 +220,7 @@ export async function generateClients(options: GenerateOptions) {
       const content = readFileSync(file, 'utf-8');
       const formatted_content = await prettier.format(content, {
         ...prettierConfig,
-        filepath: file,
+        parser: 'typescript',
       });
 
       if (content !== formatted_content) {

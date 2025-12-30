@@ -1,9 +1,4 @@
-export const INSTANCE = {
-  baseURL: "https://localhost:6443",
-  headers: {
-    Authorization: "Bearer secret-token",
-  },
-};
+import { getK8sClientConfig } from './config';
 
 export const customInstance = <T>(config: {
   url: string;
@@ -13,13 +8,21 @@ export const customInstance = <T>(config: {
   headers?: any;
   signal?: AbortSignal;
 }): Promise<T> => {
-  const url = `${INSTANCE.baseURL}${config.url}`;
+  const clientConfig = getK8sClientConfig();
+  const url = `${clientConfig.baseURL}${config.url}`;
+
+  // Build headers with token if provided
+  const authHeaders: Record<string, string> = {};
+  if (clientConfig.token) {
+    authHeaders.Authorization = `Bearer ${clientConfig.token}`;
+  }
 
   const options: RequestInit = {
     method: config.method,
     headers: {
-      "Content-Type": "application/json",
-      ...INSTANCE.headers,
+      'Content-Type': 'application/json',
+      ...authHeaders,
+      ...clientConfig.headers,
       ...config.headers,
     },
     signal: config.signal,

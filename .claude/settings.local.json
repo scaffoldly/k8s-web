@@ -19,7 +19,16 @@
       "Bash(yarn fetch-specs)",
       "Bash(yarn build)",
       "Bash(cat:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(for file in openapi-specs/*.json)",
+      "Bash(do if [[ ! \"$file\" =~ ^openapi-specs/_ ]])",
+      "Bash(done)",
+      "Bash(node:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
