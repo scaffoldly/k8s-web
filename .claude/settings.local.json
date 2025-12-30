@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn install)",
+      "Bash(docker --version:*)",
+      "Bash(make:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker compose:*)",
+      "Bash(curl:*)",
+      "Bash(yarn workspace:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(yarn add:*)",
+      "Bash(yarn remove:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(yarn generate:*)",
+      "Bash(yarn fetch-specs)",
+      "Bash(yarn build)",
+      "Bash(cat:*)",
+      "WebSearch"
+    ]
+  }
+}

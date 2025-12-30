@@ -1,0 +1,25 @@
+{
+  "name": "@k8s-web/react",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "generate": "tsx scripts/generate.ts",
+    "build": "tsup src/index.ts --format cjs --dts --sourcemap",
+    "dev": "tsup src/index.ts --format cjs --dts --sourcemap --watch",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "@tanstack/react-query": "^5.0.0"
+  },
+  "devDependencies": {
+    "@k8s-web/common": "*",
+    "@types/react": "^18.0.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}

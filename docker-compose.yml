@@ -1,0 +1,40 @@
+services:
+  etcd:
+    image: registry.k8s.io/etcd:3.5.15-0
+    container_name: k8s-etcd
+    command:
+      - etcd
+      - --advertise-client-urls=http://0.0.0.0:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    networks:
+      - k8s-network
+
+  kube-apiserver:
+    image: registry.k8s.io/kube-apiserver:v${K8S_VERSION}.0
+    container_name: k8s-apiserver
+    command:
+      - kube-apiserver
+      - --etcd-servers=http://etcd:2379
+      - --service-cluster-ip-range=10.0.0.0/24
+      - --service-account-key-file=/tmp/apiserver.key
+      - --service-account-signing-key-file=/tmp/apiserver.key
+      - --service-account-issuer=https://kubernetes.default.svc.cluster.local
+      - --secure-port=6443
+      - --bind-address=0.0.0.0
+      - --cert-dir=/tmp
+      - --authorization-mode=AlwaysAllow
+      - --token-auth-file=/etc/kubernetes/token-auth.csv
+    ports:
+      - "6443:6443"
+    volumes:
+      - ./token-auth.csv:/etc/kubernetes/token-auth.csv:ro
+    depends_on:
+      - etcd
+    networks:
+      - k8s-network
+
+networks:
+  k8s-network:
+    driver: bridge

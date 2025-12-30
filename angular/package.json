@@ -1,0 +1,27 @@
+{
+  "name": "@k8s-web/angular",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "generate": "tsx scripts/generate.ts",
+    "build": "tsup src/index.ts --format cjs --dts --sourcemap",
+    "dev": "tsup src/index.ts --format cjs --dts --sourcemap --watch",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "peerDependencies": {
+    "@angular/common": "^17.0.0",
+    "@angular/core": "^17.0.0",
+    "rxjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@k8s-web/common": "*",
+    "@angular/common": "^17.0.0",
+    "@angular/core": "^17.0.0",
+    "rxjs": "^7.0.0",
+    "zone.js": "^0.14.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}

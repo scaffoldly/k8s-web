@@ -137,3 +137,8 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Generated Kubernetes clients
+angular/src/generated/
+react/src/generated/
+openapi-specs/
