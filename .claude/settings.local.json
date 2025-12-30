@@ -38,7 +38,9 @@
       "Bash(git mv:*)",
       "Bash(grep:*)",
       "WebFetch(domain:github.com)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(kill:*)",
+      "Bash(pkill -f \"serve -l 3000\")"
     ]
   }
 }

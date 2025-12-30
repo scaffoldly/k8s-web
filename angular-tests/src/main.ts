@@ -2,7 +2,7 @@
  * Angular integration test application
  * Tests the @k8s-web/angular library by listing Kubernetes namespaces
  */
-import { bootstrapApplication } from '@angular/platform-browser-dynamic';
+import { bootstrapApplication } from '@angular/platform-browser';
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';

@@ -51,12 +51,13 @@ clean-all: clean stop-apiserver
 	@rm -rf openapi-specs
 	@echo "✓ Full cleanup complete"
 
-# Internal function to check apiserver
+# Internal function to check apiserver (starts it if not running)
 .check-apiserver:
 	@if ! docker ps | grep -q k8s-apiserver; then \
-		echo "Error: kube-apiserver is not running."; \
-		echo "Start it with: make 1.31 (or your desired version)"; \
-		exit 1; \
+		echo "kube-apiserver is not running, starting it..."; \
+		K8S_VERSION=1.35 docker compose up -d || exit 1; \
+		echo "Waiting for kube-apiserver to be ready..."; \
+		sleep 30; \
 	fi
 	@echo "✓ kube-apiserver is running"
 
@@ -73,7 +74,7 @@ test-angular:
 	@$(MAKE) .install-playwright
 	@echo ""
 	@echo "Starting test server on port 4200..."
-	@cd angular-tests && npx serve -l 4200 . > /tmp/angular-test-server.log 2>&1 & \
+	@cd angular-tests && npx serve -l 4200 --no-request-logging --no-clipboard . > /tmp/angular-test-server.log 2>&1 & \
 	SERVER_PID=$$!; \
 	sleep 3; \
 	yarn --cwd angular-tests run test || TEST_FAILED=1; \
