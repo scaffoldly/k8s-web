@@ -293,6 +293,89 @@ export const appConfig: ApplicationConfig = {
 
 **Note**: The `k8sClientInterceptor` only intercepts relative URLs (K8s API calls), so other HTTP requests in your app are not affected.
 
+### Angular Interceptors for Error Handling and Retry
+
+The Angular client includes additional interceptors for enhanced error handling and automatic retries:
+
+```typescript
+import { ApplicationConfig } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  k8sClientInterceptor,
+  k8sErrorHandlingInterceptor,
+  k8sRetryInterceptor,
+  K8S_CLIENT_CONFIG,
+} from '@k8s-web/angular';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(
+      withInterceptors([
+        k8sClientInterceptor, // Base URL and auth
+        k8sErrorHandlingInterceptor, // Enhanced error messages
+        k8sRetryInterceptor, // Automatic retries
+      ])
+    ),
+    {
+      provide: K8S_CLIENT_CONFIG,
+      useValue: {
+        baseURL: 'https://my-cluster.example.com',
+        token: 'my-service-account-token',
+      },
+    },
+  ],
+};
+```
+
+**Error Handling Interceptor:**
+
+Parses Kubernetes API errors and provides detailed error information:
+
+- Extracts error messages from K8s Status responses
+- Provides `K8sApiError` class with `statusCode`, `reason`, and `details`
+- Only processes errors from Kubernetes API endpoints
+
+```typescript
+import { K8sApiError } from '@k8s-web/angular';
+
+this.coreV1.listNamespacedPod({ namespace: 'default' }).subscribe({
+  error: (error) => {
+    if (error instanceof K8sApiError) {
+      console.error(`K8s error ${error.statusCode}: ${error.message}`);
+      console.error('Reason:', error.reason);
+      console.error('Details:', error.details);
+    }
+  },
+});
+```
+
+**Retry Interceptor:**
+
+Automatically retries failed requests with exponential backoff:
+
+- Default: 3 retries for transient errors (408, 429, 500, 502, 503, 504)
+- Exponential backoff: starts at 1s, max 30s
+- Only retries Kubernetes API requests
+- Configurable via `createK8sRetryInterceptor()`
+
+```typescript
+import { createK8sRetryInterceptor } from '@k8s-web/angular';
+
+// Custom retry configuration
+provideHttpClient(
+  withInterceptors([
+    k8sClientInterceptor,
+    createK8sRetryInterceptor({
+      maxRetries: 5,
+      initialDelay: 2000,
+      maxDelay: 60000,
+      backoffMultiplier: 2,
+      retryableStatusCodes: [429, 500, 502, 503, 504],
+    }),
+  ])
+);
+```
+
 ## Usage
 
 ### Angular
@@ -561,6 +644,10 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
   - 9 convenience hooks (usePods, useDeployments, useServices, useNamespaces, etc.)
   - Support label/field selectors, pagination, and TanStack Query options
   - Generated during client generation in `react/src/hooks.ts`
+- ✅ **Angular interceptors** - error handling and retry logic
+  - `k8sErrorHandlingInterceptor` - parses K8s API errors with detailed messages
+  - `k8sRetryInterceptor` - automatic retries with exponential backoff
+  - Configurable retry behavior (maxRetries, delays, retryable status codes)
 
 ## Known Issues & Limitations
 
@@ -571,14 +658,13 @@ Files starting with `_` in `openapi-specs/` are ignored during spec file enumera
 
 ## Next Steps
 
-1. **Add Angular interceptors**: Create additional interceptors for error handling and retry logic (auth interceptor already exists)
-2. **Publishing**: Configure for npm publishing
+1. **Publishing**: Configure for npm publishing
    - Add proper `package.json` metadata (description, repository, etc.)
    - Consider separate versioning for Angular and React packages
    - Configure npm publishing workflow
-3. **Documentation**: Generate API docs from OpenAPI specs using tools like TypeDoc
-4. **Testing**: Add integration tests for generated clients
-5. **Optimization**: Consider adding `.gitignore` patterns for generated files if repository size becomes an issue
+2. **Documentation**: Generate API docs from OpenAPI specs using tools like TypeDoc
+3. **Testing**: Add integration tests for generated clients
+4. **Optimization**: Consider adding `.gitignore` patterns for generated files if repository size becomes an issue
 
 ## Quick Reference
 

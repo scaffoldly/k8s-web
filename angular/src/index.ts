@@ -51,3 +51,7 @@ export * from './generated/models';
 // Re-export configuration utilities
 export * from './config';
 export * from './interceptor';
+
+// Re-export additional interceptors
+export * from './error-handling.interceptor';
+export * from './retry.interceptor';
